@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WebHop.Core;
 using WebHop.Core.Abstract;
@@ -63,8 +64,9 @@ namespace WebHop.Server
             var hubUrl = configuredUrl.AbsolutePath == "/" ? new Uri(configuredUrl, Constants.DefaultWebHopEndpoint) : configuredUrl;
             hubConnection = new HubConnectionBuilder()
               .WithUrl(hubUrl, options => { })
-              .ConfigureLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Debug))
+              .ConfigureLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information))
               .WithAutomaticReconnect()
+              .AddMessagePackProtocol()
               .Build();
 
             hubConnection.Closed += async (error) =>

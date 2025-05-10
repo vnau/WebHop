@@ -8,8 +8,9 @@ string serverId = Guid.NewGuid().ToString().Split("-").First();
 builder.Services.AddSingleton<IServer>(new WebHopServer());
 
 var app = builder.Build();
-
-app.MapGet("/", () =>
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.MapGet("/ping", () =>
 {
     return $"Hello from Server {serverId}!";
 });

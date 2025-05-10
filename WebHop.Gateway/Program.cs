@@ -15,7 +15,7 @@ builder.WebHost.ConfigureKestrel(options =>
 builder.Services.AddSignalR(options =>
 {
     options.MaximumReceiveMessageSize = 100 * 1024 * 1024;
-});
+}).AddMessagePackProtocol();
 
 var app = builder.Build();
 

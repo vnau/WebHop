@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 using WebHop.Core.Abstract;
-using WebHop.Core.Models;
 using WebHop.Gateway.Models;
 
 namespace WebHop.Gateway
