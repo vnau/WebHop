@@ -1,96 +1,116 @@
-﻿using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using WebHop.Core;
-using WebHop.Core.Abstract;
-using HttpResponseMessage = WebHop.Core.Models.HttpResponseMessage;
 
 namespace WebHop.Server
 {
-    public sealed class WebHopServer : IServer, IMessageHandler<Core.Models.HttpRequestMessage>, IAsyncDisposable
+    /// <summary>
+    /// Serves the application through a WebHop gateway instead of a local port.
+    /// The first configured URL (--urls / applicationUrl) is the gateway address.
+    /// Internally this is Kestrel whose connections are tunnel streams opened to the gateway.
+    /// </summary>
+    public sealed class WebHopServer : IServer, IAsyncDisposable
     {
-        private HubConnection? hubConnection;
-        private IApplicationProcessor? applicationProcessor;
+        private readonly WebHopServerOptions options;
+        private readonly ILoggerFactory loggerFactory;
+        private readonly bool ownsLoggerFactory;
+        private WebHopConnectionListenerFactory? listenerFactory;
+        private KestrelServer? kestrel;
 
-        private FeatureCollection CreateBaseFeatures()
+        public WebHopServer() : this(new WebHopServerOptions())
         {
-            var features = new FeatureCollection();
-            var serverAddressesFeature = new ServerAddressesFeature();
-            features.Set<IServerAddressesFeature>(serverAddressesFeature);
-            return features;
         }
 
-        public WebHopServer()
+        public WebHopServer(WebHopServerOptions options, ILoggerFactory? loggerFactory = null)
         {
-            Features = CreateBaseFeatures();
+            this.options = options;
+            ownsLoggerFactory = loggerFactory is null;
+            this.loggerFactory = loggerFactory ?? LoggerFactory.Create(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information));
+
+            Features = new FeatureCollection();
+            Features.Set<IServerAddressesFeature>(new ServerAddressesFeature());
         }
 
-        public async Task ProcessMessageAsync(Core.Models.HttpRequestMessage request)
+        public IFeatureCollection Features { get; }
+
+        /// <summary>Identifies this server to the gateway (X-Webhop-Connection-Id).</summary>
+        public string ServerId => options.ServerId;
+
+        /// <summary>Current state of the tunnels to the gateway.</summary>
+        public WebHopServerStatus Status =>
+            listenerFactory?.Listener?.Status ?? new WebHopServerStatus(WebHopConnectionState.Connecting, 0, options.MaxConnections, null);
+
+        public async Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken ct) where TContext : notnull
         {
-            Console.WriteLine($"[WebHopServer] Received request: {request.Method} {request.Path.ToString()}");
+            var address = Features.Get<IServerAddressesFeature>()?.Addresses.FirstOrDefault()
+                ?? throw new InvalidOperationException("No WebHop gateway URL configured. Pass it with --urls or applicationUrl.");
+            var tunnelUri = GetTunnelUri(address, options.ServerId);
 
-            if (request == null || applicationProcessor == null)
-                return;
+            // The gateway rejects every tunnel without one; fail now instead of retrying forever
+            if (string.IsNullOrWhiteSpace(options.AuthToken))
+                throw new InvalidOperationException(
+                    $"No WebHop auth token configured. Set {Constants.AuthTokenEnvironmentVariable}, the {Constants.AuthTokenSetting} setting or WebHopServerOptions.AuthToken.");
 
-            var features = CreateBaseFeatures();
-            var response = await applicationProcessor.ProcessRequestAsync(features, request, null, CancellationToken.None);
+            if (tunnelUri.Scheme == "ws" && !tunnelUri.IsLoopback)
+                loggerFactory.CreateLogger<WebHopServer>().LogWarning("The WebHop auth token is sent unencrypted to {Gateway}; use an https:// gateway URL", tunnelUri.GetLeftPart(UriPartial.Authority));
 
-            await hubConnection.InvokeAsync(nameof(IMessageHandler<HttpResponseMessage>.ProcessMessageAsync), response);
-        }
-
-        public IFeatureCollection Features { get; private set; } = new FeatureCollection();
-
-        public async ValueTask DisposeAsync()
-        {
-            await hubConnection.StopAsync();
-            await hubConnection.DisposeAsync();
-        }
-
-        public void Dispose()
-        {
-            hubConnection.StopAsync().GetAwaiter().GetResult();
-            hubConnection.DisposeAsync().AsTask().GetAwaiter().GetResult();
-        }
-
-        public async Task StartAsync<TContext>(
-            IHttpApplication<TContext> application, CancellationToken ct) where TContext : notnull
-        {
-            applicationProcessor = new WebHopRequestProcessor<TContext>(application);
-            var addressesFeature = Features.Get<IServerAddressesFeature>();
-            var configuredUrl = new Uri(addressesFeature?.Addresses?.FirstOrDefault());
-            var hubUrl = configuredUrl.AbsolutePath == "/" ? new Uri(configuredUrl, Constants.DefaultWebHopEndpoint) : configuredUrl;
-            hubConnection = new HubConnectionBuilder()
-              .WithUrl(hubUrl, options => { })
-              .ConfigureLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Information))
-              .WithAutomaticReconnect()
-              .AddMessagePackProtocol()
-              .Build();
-
-            hubConnection.Closed += async (error) =>
+            var kestrelOptions = new KestrelServerOptions
             {
-                Console.WriteLine($"Connection closed: {error?.Message}");
+                ApplicationServices = new ServiceCollection().AddSingleton(loggerFactory).BuildServiceProvider(),
             };
+            kestrelOptions.Limits.MaxRequestBodySize = null;
+            // Idle tunnel streams wait for the gateway; it closes pooled connections it no longer needs.
+            // Not infinite: Kestrel then aborts every connection within a second (write data rate timeout)
+            kestrelOptions.Limits.KeepAliveTimeout = TimeSpan.FromHours(1);
+            kestrelOptions.Listen(new WebHopEndPoint(tunnelUri), listen => listen.Protocols = HttpProtocols.Http1);
 
-            hubConnection.Reconnected += (connectionId) =>
-            {
-                Console.WriteLine($"Reconnected: {connectionId}");
-                return Task.CompletedTask;
-            };
+            listenerFactory = new WebHopConnectionListenerFactory(options, loggerFactory);
+            kestrel = new KestrelServer(Options.Create(kestrelOptions), listenerFactory, loggerFactory);
 
-            hubConnection.On(
-                nameof(IMessageHandler<Core.Models.HttpRequestMessage>.ProcessMessageAsync),
-                (Func<Core.Models.HttpRequestMessage, Task>)ProcessMessageAsync
-            );
-
-            await hubConnection.StartAsync(ct);
+            await kestrel.StartAsync(new ForwardedHeadersApplication<TContext>(application), ct);
         }
 
         public Task StopAsync(CancellationToken ct)
         {
-            return hubConnection?.StopAsync(ct) ?? Task.CompletedTask;
+            return kestrel?.StopAsync(ct) ?? Task.CompletedTask;
+        }
+
+        public void Dispose()
+        {
+            kestrel?.Dispose();
+            if (ownsLoggerFactory)
+                loggerFactory.Dispose();
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
+
+        /// <summary>The configured gateway URL as the WebSocket URL tunnels connect to.</summary>
+        internal static Uri GetTunnelUri(string address, string serverId)
+        {
+            var configuredUrl = new Uri(address);
+            var hubUrl = configuredUrl.AbsolutePath == "/" ? new Uri(configuredUrl, Constants.DefaultWebHopEndpoint) : configuredUrl;
+
+            var builder = new UriBuilder(hubUrl)
+            {
+                Scheme = hubUrl.Scheme switch
+                {
+                    "https" or "wss" => "wss",
+                    "http" or "ws" => "ws",
+                    _ => throw new InvalidOperationException($"Unsupported WebHop gateway URL scheme: {hubUrl.Scheme}"),
+                },
+            };
+            var query = builder.Query.TrimStart('?');
+            builder.Query = (query.Length > 0 ? query + "&" : "") + $"{Constants.ServerIdParameter}={serverId}";
+            return builder.Uri;
         }
     }
 }
