@@ -14,4 +14,8 @@
     <ProjectReference Include="..\WebHop.Core\WebHop.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="WebHop.Tests" />
+  </ItemGroup>
+
 </Project>

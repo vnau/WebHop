@@ -1,18 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>webhop</AssemblyName>
-    <RootNamespace>WebHop.CLI</RootNamespace>
-    <Version>1.0.0</Version>
-
-    <!-- dotnet pack makes it installable with: dotnet tool install -g WebHop.CLI -->
-    <PackAsTool>true</PackAsTool>
-    <ToolCommandName>webhop</ToolCommandName>
-    <PackageId>WebHop.CLI</PackageId>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Xunit" />
     <Using Include="Microsoft.AspNetCore.Builder" />
     <Using Include="Microsoft.AspNetCore.Hosting" />
     <Using Include="Microsoft.AspNetCore.Http" />
@@ -29,15 +23,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\WebHop.Core\WebHop.Core.csproj" />
     <ProjectReference Include="..\WebHop.Server\WebHop.Server.csproj" />
+    <ProjectReference Include="..\WebHop.Gateway\WebHop.Gateway.csproj" />
+    <ProjectReference Include="..\WebHop.CLI\WebHop.CLI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="WebHop.Tests" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>
