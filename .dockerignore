@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/Properties/ServiceDependencies/
+**/*.user
+.git/
+.env

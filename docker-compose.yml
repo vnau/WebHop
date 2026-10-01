@@ -1,0 +1,29 @@
+# Gateway plus the example server. Set the auth token first, e.g. in a .env file next to this file:
+#   WEBHOP_AUTHTOKEN=<long random string>
+# then: docker compose up --build   and open http://localhost:8080
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: WebHop.Gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      WEBHOP_AUTHTOKEN: ${WEBHOP_AUTHTOKEN:?Set WEBHOP_AUTHTOKEN}
+      # Behind a TLS-terminating reverse proxy (nginx, Traefik, Caddy), uncomment so the
+      # client's IP and scheme reach the servers instead of the proxy's
+      # ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+    restart: unless-stopped
+
+  example:
+    build:
+      context: .
+      dockerfile: WebHop.Example/Dockerfile
+    environment:
+      # The gateway URL, not a listen address; use https:// for a gateway outside this network
+      ASPNETCORE_URLS: http://gateway:8080/
+      ASPNETCORE_HTTP_PORTS: ""
+      WEBHOP_AUTHTOKEN: ${WEBHOP_AUTHTOKEN:?Set WEBHOP_AUTHTOKEN}
+    depends_on:
+      - gateway
+    restart: unless-stopped
