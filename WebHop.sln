@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35506.116 d17.12
+VisualStudioVersion = 17.12.35506.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebHop.Server", "WebHop.Server\WebHop.Server.csproj", "{42F6512D-2E3F-4E4D-AF6A-0C4B34DD59ED}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebHop.Example", "WebHop.Ex
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebHop.Core", "WebHop.Core\WebHop.Core.csproj", "{539E4C5C-1D78-4279-A838-ADAD57EB6224}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebHop.CLI", "WebHop.CLI\WebHop.CLI.csproj", "{243A8B7C-5D2E-1CDF-20CC-0238FEC30E0C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,6 +44,10 @@ Global
 		{539E4C5C-1D78-4279-A838-ADAD57EB6224}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{539E4C5C-1D78-4279-A838-ADAD57EB6224}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{539E4C5C-1D78-4279-A838-ADAD57EB6224}.Release|Any CPU.Build.0 = Release|Any CPU
+		{243A8B7C-5D2E-1CDF-20CC-0238FEC30E0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{243A8B7C-5D2E-1CDF-20CC-0238FEC30E0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{243A8B7C-5D2E-1CDF-20CC-0238FEC30E0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{243A8B7C-5D2E-1CDF-20CC-0238FEC30E0C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
