@@ -5,6 +5,7 @@ using WebHop.Core;
 
 namespace WebHop.Gateway
 {
+    /// <summary>Builds the gateway; Program runs it, tests start it in-process.</summary>
     public static class GatewayApp
     {
         public static WebApplication Create(string[] args)
@@ -15,7 +16,7 @@ namespace WebHop.Gateway
             {
                 options.Limits.MaxRequestBodySize = null;
             });
-
+            // Under IIS (Azure App Service on Windows, in-process) requests are served by IIS's server instead of Kestrel
             builder.Services.Configure<IISServerOptions>(options =>
             {
                 options.MaxRequestBodySize = null;
