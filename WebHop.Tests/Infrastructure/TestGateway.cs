@@ -20,13 +20,17 @@ namespace WebHop.Tests.Infrastructure
         public TunnelRegistry Registry => App.Services.GetRequiredService<TunnelRegistry>();
 
         /// <param name="port">0 picks a free port; pass a previous gateway's port to restart "the same" gateway.</param>
-        public static async Task<TestGateway> StartAsync(string? authToken = AuthToken, int port = 0)
+        /// <param name="maxWebSockets">Sets WebHop:MaxWebSockets, so the gateway advertises a per-origin tunnel cap.</param>
+        public static async Task<TestGateway> StartAsync(string? authToken = AuthToken, int port = 0, int? maxWebSockets = null)
         {
             List<string> args = ["--urls", $"http://127.0.0.1:{port}", "--Logging:LogLevel:Default=Warning"];
             if (authToken is not null)
                 args.Add($"--WebHop:AuthToken={authToken}");
+            if (maxWebSockets is { } max)
+                args.Add($"--WebHop:MaxWebSockets={max}");
 
-            var app = GatewayApp.Create([.. args]);
+            // Mirror the deployable host, including its branded error pages
+            var app = GatewayApp.Create([.. args], a => a.UseWebHopErrorPages());
             await app.StartAsync();
             return new TestGateway(app, app.Urls.Single());
         }

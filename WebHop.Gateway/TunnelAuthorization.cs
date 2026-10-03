@@ -26,20 +26,55 @@ namespace WebHop.Gateway
 
         public bool IsConfigured => authTokenHash is not null;
 
-        public bool IsAuthorized(HttpRequest request)
+        /// <summary>Checks the <c>Authorization: Bearer</c> header, or a token carried in the subprotocols.</summary>
+        public bool IsAuthorized(HttpContext context)
+        {
+            const string scheme = "Bearer ";
+            var header = context.Request.Headers.Authorization.ToString();
+            if (header.StartsWith(scheme, StringComparison.OrdinalIgnoreCase)
+                && IsAuthorized(header[scheme.Length..].Trim()))
+                return true;
+
+            // Browsers cannot set Authorization on a WebSocket, so a token may ride in Sec-WebSocket-Protocol
+            return IsAuthorized(TokenFromSubprotocols(context.WebSockets.WebSocketRequestedProtocols));
+        }
+
+        /// <summary>Constant-time check of a presented token against the configured one.</summary>
+        public bool IsAuthorized(string? token)
         {
             // No open mode: without an auth token anyone could register as a server and receive the traffic
-            if (authTokenHash is null)
-                return false;
-
-            const string scheme = "Bearer ";
-            var header = request.Headers.Authorization.ToString();
-            if (!header.StartsWith(scheme, StringComparison.OrdinalIgnoreCase))
+            if (authTokenHash is null || string.IsNullOrEmpty(token))
                 return false;
 
             // Comparing hashes keeps the comparison constant-time regardless of the token's length
-            var presented = SHA256.HashData(Encoding.UTF8.GetBytes(header[scheme.Length..].Trim()));
+            var presented = SHA256.HashData(Encoding.UTF8.GetBytes(token));
             return CryptographicOperations.FixedTimeEquals(presented, authTokenHash);
+        }
+
+        /// <summary>Extracts the base64url token from a <c>webhop.token.*</c> subprotocol, or null.</summary>
+        public static string? TokenFromSubprotocols(IEnumerable<string> protocols)
+        {
+            foreach (var protocol in protocols)
+            {
+                if (!protocol.StartsWith(Constants.TokenSubprotocolPrefix, StringComparison.Ordinal))
+                    continue;
+                try
+                {
+                    return Encoding.UTF8.GetString(Base64UrlDecode(protocol[Constants.TokenSubprotocolPrefix.Length..]));
+                }
+                catch (FormatException)
+                {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        private static byte[] Base64UrlDecode(string value)
+        {
+            value = value.Replace('-', '+').Replace('_', '/');
+            value += (value.Length % 4) switch { 2 => "==", 3 => "=", _ => "" };
+            return Convert.FromBase64String(value);
         }
     }
 }

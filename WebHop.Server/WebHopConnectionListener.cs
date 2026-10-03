@@ -1,4 +1,5 @@
 using System.IO.Pipelines;
+using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.Connections;
@@ -37,10 +38,16 @@ namespace WebHop.Server
     {
         private enum Failure { None, Unreachable, Unauthorized, Refused }
 
-        private readonly SemaphoreSlim slots = new(options.MaxConnections);
+        // Pulsed when a tunnel closes, so a parked AcceptAsync can open a replacement.
+        private readonly SemaphoreSlim room = new(0);
         private readonly CancellationTokenSource unbind = new();
         private readonly string gateway = endpoint.TunnelUri.GetLeftPart(UriPartial.Path);
         private int open;
+        // Per-origin tunnel cap the gateway advertised on the handshake; 0 until learned (then unlimited stays 0).
+        private volatile int advertisedCap;
+
+        /// <summary>The smaller of the configured ceiling and any cap the gateway advertised.</summary>
+        private int EffectiveMax => advertisedCap > 0 ? Math.Min(options.MaxConnections, advertisedCap) : options.MaxConnections;
 
         // Kestrel calls AcceptAsync one at a time, so these are only written there;
         // Status reads the volatile ones from other threads.
@@ -66,7 +73,7 @@ namespace WebHop.Server
                         _ when connected => WebHopConnectionState.Offline,
                         _ => WebHopConnectionState.Connecting,
                     };
-                return new WebHopServerStatus(state, count, options.MaxConnections, lastError);
+                return new WebHopServerStatus(state, count, EffectiveMax, lastError);
             }
         }
 
@@ -75,7 +82,10 @@ namespace WebHop.Server
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct, unbind.Token);
             try
             {
-                await slots.WaitAsync(cts.Token);
+                // Keep EffectiveMax tunnels open; a closed tunnel frees a slot. Kestrel calls AcceptAsync
+                // one at a time, so this gate needs no extra locking.
+                while (Volatile.Read(ref open) >= EffectiveMax)
+                    await room.WaitAsync(cts.Token);
 
                 var delay = TimeSpan.FromSeconds(1);
                 while (true)
@@ -88,11 +98,12 @@ namespace WebHop.Server
                     try
                     {
                         await webSocket.ConnectAsync(endpoint.TunnelUri, cts.Token);
+                        LearnAdvertisedCap(webSocket);
                         OnConnected(Interlocked.Increment(ref open));
                         return new WebHopConnection(new TunnelStream(webSocket), endpoint, () =>
                         {
                             Interlocked.Decrement(ref open);
-                            slots.Release();
+                            room.Release();
                         });
                     }
                     catch (Exception ex) when (!cts.IsCancellationRequested)
@@ -109,6 +120,21 @@ namespace WebHop.Server
             {
                 // Kestrel expects null once the listener is unbound
                 return null;
+            }
+        }
+
+        /// <summary>Reads the per-origin tunnel cap the gateway advertised on the handshake, if any.</summary>
+        private void LearnAdvertisedCap(ClientWebSocket webSocket)
+        {
+            if (webSocket.HttpResponseHeaders is not { } headers)
+                return;
+            foreach (var header in headers)
+            {
+                if (!string.Equals(header.Key, Headers.XWebhopMaxConnections, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (int.TryParse(header.Value.FirstOrDefault(), out var value) && value > 0)
+                    advertisedCap = value;
+                return;
             }
         }
 
@@ -212,6 +238,7 @@ namespace WebHop.Server
         {
             unbind.Cancel();
             unbind.Dispose();
+            room.Dispose();
             return ValueTask.CompletedTask;
         }
     }

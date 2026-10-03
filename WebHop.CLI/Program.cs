@@ -99,7 +99,7 @@ internal static class Help
                                      then authtoken from the config file)
               --host-header string   Host header sent to the local server: `rewrite` for the
                                      target's host, or any value (default: the public host)
-              --connections int      tunnels to keep open; caps concurrent requests (default 4)
+              --connections int      tunnels to keep open; caps concurrent requests (default 10)
               --log string           where to write logs: stdout, stderr, false or a file path.
                                      stdout/stderr replace the live screen (default false)
               --log-level string     debug, info, warn, error or crit (default info)

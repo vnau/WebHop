@@ -1,3 +1,3 @@
 using WebHop.Gateway;
 
-GatewayApp.Create(args).Run();
+GatewayApp.Create(args, app => app.UseWebHopErrorPages()).Run();

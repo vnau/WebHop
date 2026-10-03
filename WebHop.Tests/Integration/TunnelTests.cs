@@ -38,6 +38,20 @@ namespace WebHop.Tests.Integration
         }
 
         [Fact]
+        public async Task A_gateway_error_is_a_branded_html_page()
+        {
+            await using var gateway = await TestGateway.StartAsync();
+
+            using var response = await gateway.Client.GetAsync("/ping");
+
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+            Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains("WebHop", body);
+            Assert.Contains("503", body);
+        }
+
+        [Fact]
         public async Task The_app_sees_the_visitors_request_details_not_the_tunnels()
         {
             await using var gateway = await TestGateway.StartAsync();
@@ -233,6 +247,73 @@ namespace WebHop.Tests.Integration
             var error = await Assert.ThrowsAsync<InvalidOperationException>(() => TunnelApp.StartAsync(gateway.Url, authToken: null));
             Assert.Contains(Constants.AuthTokenEnvironmentVariable, error.Message);
         }
+
+        [Fact]
+        public async Task A_tunnel_can_authenticate_with_the_websocket_subprotocol()
+        {
+            // Browsers cannot set Authorization on a WebSocket, so the token may ride in Sec-WebSocket-Protocol
+            await using var gateway = await TestGateway.StartAsync();
+
+            using var ws = new ClientWebSocket();
+            ws.Options.AddSubProtocol(Constants.WebHopSubprotocol);
+            ws.Options.AddSubProtocol(Constants.TokenSubprotocolPrefix + Base64Url(TestGateway.AuthToken));
+            var uri = new Uri(gateway.Url.Replace("http://", "ws://") + "/webhop?id=browser");
+
+            await ws.ConnectAsync(uri, CancellationToken.None);
+
+            Assert.Equal(Constants.WebHopSubprotocol, ws.SubProtocol);
+            await Eventually.TrueAsync(() => gateway.Registry.ServerCount == 1, "tunnel registered via subprotocol");
+            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+        }
+
+        [Fact]
+        public async Task A_tunnel_with_a_wrong_subprotocol_token_is_rejected()
+        {
+            await using var gateway = await TestGateway.StartAsync();
+
+            using var ws = new ClientWebSocket();
+            ws.Options.AddSubProtocol(Constants.WebHopSubprotocol);
+            ws.Options.AddSubProtocol(Constants.TokenSubprotocolPrefix + Base64Url("wrong-token"));
+            var uri = new Uri(gateway.Url.Replace("http://", "ws://") + "/webhop?id=browser");
+
+            await Assert.ThrowsAnyAsync<WebSocketException>(() => ws.ConnectAsync(uri, CancellationToken.None));
+            Assert.Equal(0, gateway.Registry.ServerCount);
+        }
+
+        [Fact]
+        public async Task The_gateway_advertises_the_per_origin_tunnel_limit()
+        {
+            await using var gateway = await TestGateway.StartAsync(maxWebSockets: 5); // 60% of 5 -> 3
+
+            using var ws = new ClientWebSocket();
+            ws.Options.CollectHttpResponseDetails = true;
+            ws.Options.SetRequestHeader("Authorization", "Bearer " + TestGateway.AuthToken);
+            await ws.ConnectAsync(new Uri(gateway.Url.Replace("http://", "ws://") + "/webhop?id=origin"), CancellationToken.None);
+
+            var advertised = ws.HttpResponseHeaders!
+                .First(h => string.Equals(h.Key, Headers.XWebhopMaxConnections, StringComparison.OrdinalIgnoreCase))
+                .Value.First();
+            Assert.Equal("3", advertised);
+            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+        }
+
+        [Fact]
+        public async Task An_origin_caps_its_tunnels_to_the_gateways_advertised_limit()
+        {
+            await using var gateway = await TestGateway.StartAsync(maxWebSockets: 5); // advertises 3
+            await using var app = await TunnelApp.StartAsync(gateway.Url, maxConnections: 10);
+
+            await Eventually.TrueAsync(() => app.Server.Status.OpenTunnels == 3, "origin settles at the advertised cap");
+            Assert.Equal(3, app.Server.Status.MaxTunnels);
+
+            // It should never climb past the cap, even though it was configured for 10
+            await Task.Delay(500);
+            Assert.Equal(3, app.Server.Status.OpenTunnels);
+            Assert.Equal("pong", await gateway.Client.GetStringAsync("/ping"));
+        }
+
+        private static string Base64Url(string value) =>
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(value)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
         private sealed record InfoResponse(string Scheme, string Host, string? RemoteIp, string TraceIdentifier);
     }

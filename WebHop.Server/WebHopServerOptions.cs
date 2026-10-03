@@ -16,10 +16,12 @@ namespace WebHop.Server
         public string ServerId { get; set; } = Guid.NewGuid().ToString("N");
 
         /// <summary>
-        /// Number of tunnel streams kept open to the gateway. Each carries one HTTP connection,
-        /// so this caps the number of concurrent requests (and upgraded WebSockets).
+        /// Upper bound on the tunnel streams kept open to the gateway. Each carries one HTTP connection,
+        /// so this caps the number of concurrent requests (and upgraded WebSockets). The gateway may
+        /// advertise a lower per-origin limit (from its WebSocket budget), and the server honors the
+        /// smaller of the two — so this is a ceiling, not a guarantee.
         /// </summary>
-        public int MaxConnections { get; set; } = 4;
+        public int MaxConnections { get; set; } = 10;
 
         /// <summary>Upper bound for the delay between reconnect attempts while the gateway is unreachable.</summary>
         public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromSeconds(30);

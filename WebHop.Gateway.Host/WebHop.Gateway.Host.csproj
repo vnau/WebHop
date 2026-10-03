@@ -11,4 +11,17 @@
     <ProjectReference Include="..\WebHop.Gateway\WebHop.Gateway.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="ErrorPage/gateway-error.html" />
+    <None Remove="ErrorPage/favicon.svg" />
+    <None Remove="ErrorPage/favicon.png" />
+    <EmbeddedResource Include="ErrorPage/gateway-error.html" />
+    <EmbeddedResource Include="ErrorPage/favicon.svg" />
+    <EmbeddedResource Include="ErrorPage/favicon.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WebHop.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -27,6 +27,11 @@ namespace Microsoft.AspNetCore.Builder
             if (!authorization.IsConfigured)
                 logger.LogError("No auth token: set {Variable} or the {Setting} setting. The gateway accepts no tunnels until then", Constants.AuthTokenEnvironmentVariable, Constants.AuthTokenSetting);
 
+            // How many tunnels one origin may keep open, from the host's WebSocket budget (0 = unlimited)
+            var maxConnectionsPerOrigin = WebSocketBudget.PerOriginCap(services.GetRequiredService<IConfiguration>());
+            if (maxConnectionsPerOrigin > 0)
+                logger.LogInformation("Advertising up to {Max} tunnels per origin (host WebSocket budget)", maxConnectionsPerOrigin);
+
             return app.Use(async (context, next) =>
             {
                 var path = context.Request.Path;
@@ -40,7 +45,7 @@ namespace Microsoft.AspNetCore.Builder
                 // Servers open tunnel streams here: one WebSocket per HTTP connection
                 if (path.Equals(Constants.DefaultWebHopEndpoint, StringComparison.OrdinalIgnoreCase))
                 {
-                    await AcceptTunnelAsync(context, registry, authorization, lifetime, logger);
+                    await AcceptTunnelAsync(context, registry, authorization, lifetime, logger, maxConnectionsPerOrigin);
                     return;
                 }
 
@@ -65,7 +70,7 @@ namespace Microsoft.AspNetCore.Builder
             });
         }
 
-        private static async Task AcceptTunnelAsync(HttpContext context, TunnelRegistry registry, TunnelAuthorization authorization, IHostApplicationLifetime lifetime, ILogger logger)
+        private static async Task AcceptTunnelAsync(HttpContext context, TunnelRegistry registry, TunnelAuthorization authorization, IHostApplicationLifetime lifetime, ILogger logger, int maxConnectionsPerOrigin)
         {
             string? serverId = context.Request.Query[Constants.ServerIdParameter];
             if (!context.WebSockets.IsWebSocketRequest || !TunnelRegistry.IsValidServerId(serverId))
@@ -74,7 +79,7 @@ namespace Microsoft.AspNetCore.Builder
                 return;
             }
 
-            if (!authorization.IsAuthorized(context.Request))
+            if (!authorization.IsAuthorized(context))
             {
                 if (authorization.IsConfigured)
                     logger.LogWarning("Rejected tunnel from {RemoteIp}: invalid auth token", context.Connection.RemoteIpAddress);
@@ -84,7 +89,15 @@ namespace Microsoft.AspNetCore.Builder
                 return;
             }
 
-            var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+            // Tell the origin how many tunnels it may keep open, so it won't exhaust the host's WebSocket budget
+            if (maxConnectionsPerOrigin > 0)
+                context.Response.Headers[Headers.XWebhopMaxConnections] = maxConnectionsPerOrigin.ToString();
+
+            // Echo only the fixed marker when a browser authenticated through a subprotocol, never the token
+            var subProtocol = context.WebSockets.WebSocketRequestedProtocols.Contains(Constants.WebHopSubprotocol)
+                ? Constants.WebHopSubprotocol
+                : null;
+            var webSocket = await context.WebSockets.AcceptWebSocketAsync(subProtocol);
             // Close tunnels as soon as the gateway stops; otherwise shutdown waits for each tunnel
             // request until the host's 30 s timeout, and servers reconnect that much later
             using var closing = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted, lifetime.ApplicationStopping);

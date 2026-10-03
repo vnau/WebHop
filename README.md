@@ -146,7 +146,7 @@ If the gateway runs behind a TLS-terminating reverse proxy (nginx, Traefik, Cadd
 - Enable **WebSockets** in the gateway's configuration.
 - Set `WEBHOP_AUTHTOKEN` as an application setting.
 - Point your app at `https://<your-app>.azurewebsites.net/`.
-- Mind the plan's WebSocket limit per instance: Free allows 5, Shared 35, Basic 350, Standard and up have no fixed limit. Every tunnel is one WebSocket, and so is every WebSocket your visitors open. On Free, set `WebHop__MaxConnections=4` in your app; otherwise extra tunnels are refused with 503, and the app logs a warning and keeps retrying.
+- Mind the plan's WebSocket limit per instance: Free allows 5, Shared 35, Basic 350, Standard and up have no fixed limit. Every tunnel is one WebSocket, and so is every WebSocket your visitors open. On the capped tiers (Free, Shared) the gateway advertises a per-origin tunnel limit on the handshake and your app caps itself to it automatically, leaving room for visitors — so no manual `MaxConnections` tuning is needed.
 
 ## Server options
 
@@ -163,7 +163,7 @@ If the gateway runs behind a TLS-terminating reverse proxy (nginx, Traefik, Cadd
 | Option | Default | Meaning |
 |---|---|---|
 | `AuthToken` | `WEBHOP_AUTHTOKEN` env var | The gateway's auth token (keep it out of appsettings.json in source control) |
-| `MaxConnections` | 4 | Tunnels kept open; caps concurrent requests and WebSockets |
+| `MaxConnections` | 10 | Tunnels kept open; caps concurrent requests and WebSockets (the gateway may advertise a lower per-origin limit, and the smaller wins) |
 | `ServerId` | random | How the gateway identifies this app |
 | `MaxReconnectDelay` | 30 s | Upper bound of the reconnect backoff |
 | `KeepAliveInterval` | 15 s | WebSocket ping interval |
