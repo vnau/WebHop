@@ -26,7 +26,7 @@ Pick an auth token (any long random string) and run a gateway with it. Servers n
 
 ```sh
 export WEBHOP_AUTHTOKEN=<token>      # PowerShell: $env:WEBHOP_AUTHTOKEN = "<token>"
-dotnet run --project WebHop.Gateway --launch-profile https
+dotnet run --project WebHop.Gateway.Host --launch-profile https
 ```
 
 Reference `WebHop.Server` from your app and serve it through WebHop instead of Kestrel:
@@ -136,7 +136,7 @@ WEBHOP_AUTHTOKEN=<long random string> docker compose up --build
 The site is then at http://localhost:8080. You can put `WEBHOP_AUTHTOKEN` in a `.env` file next to `docker-compose.yml` instead; that file is git-ignored. To build one image on its own, build from the repository root:
 
 ```sh
-docker build -f WebHop.Gateway/Dockerfile -t webhop-gateway .
+docker build -f WebHop.Gateway.Host/Dockerfile -t webhop-gateway .
 ```
 
 If the gateway runs behind a TLS-terminating reverse proxy (nginx, Traefik, Caddy), set `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` on the gateway so apps see the client's real IP and scheme. The proxy must also pass WebSocket upgrades on `/webhop`; nginx needs `proxy_http_version 1.1` and the `Upgrade`/`Connection` headers for this.

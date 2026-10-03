@@ -4,6 +4,9 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <PackageId>WebHop.Core</PackageId>
+    <Description>Shared primitives for WebHop: the tunnel stream, header names and constants used by the gateway and server packages.</Description>
   </PropertyGroup>
 
 </Project>

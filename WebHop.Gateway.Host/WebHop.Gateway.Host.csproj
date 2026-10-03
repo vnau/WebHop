@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WebHop.Server\WebHop.Server.csproj" />
+    <ProjectReference Include="..\WebHop.Gateway\WebHop.Gateway.csproj" />
   </ItemGroup>
 
 </Project>
