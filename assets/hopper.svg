@@ -1,37 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="30.4 21 150 92.7" width="600" height="375">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="55 18 105 95" width="420" height="380">
   <defs>
     <clipPath id="above-rim">
       <path d="M55 0 H160 V96.6 H146.4 A41 7.6 0 0 1 64.4 96.6 H55 Z" />
     </clipPath>
-
-    <radialGradient id="bg-radial" gradientUnits="userSpaceOnUse" cx="105.4" cy="70" r="71.2">
-      <stop offset="0"     stop-color="#b8b8b8" stop-opacity=".5" />
-      <stop offset=".4"  stop-color="#a6a6a6" stop-opacity=".4" />
-      <stop offset=".7"  stop-color="#949494" stop-opacity=".3" />
-      <stop offset="1"    stop-color="#808080" stop-opacity="0" />
-    </radialGradient>
-
-    <linearGradient id="bg-vertical" gradientUnits="userSpaceOnUse" x1="0" y1="70" x2="0" y2="114">
-      <stop offset="0"   stop-color="#fff" />
-      <stop offset=".382" stop-color="#fff" stop-opacity=".85" />
-      <stop offset="1"   stop-color="#fff" stop-opacity="0" />
-    </linearGradient>
-    <mask id="fade-down" maskUnits="userSpaceOnUse" x="30.4" y="70" width="150" height="72">
-      <rect x="30.4" y="70" width="150" height="72" fill="url(#bg-vertical)" />
-    </mask>
   </defs>
-
   <style>
-  #backdrop{
-    transform-box:fill-box;
-    transform-origin:50% 0;
-    animation:backdrop-in .8s cubic-bezier(.2,.7,.3,1) both;
-  }
-  @keyframes backdrop-in{
-    0%   {opacity:0; transform:scale(.7,.15)}
-    100% {opacity:1; transform:scale(1,1)}
-  }
-
   #hole{
     transform-box:fill-box;
     transform-origin:center;
@@ -95,9 +68,6 @@
     .crumb{opacity:0}
   }
 </style>
-  <g id="backdrop">
-    <path d="M34.2 75 A71.2 71.2 0 0 0 176.6 75 Z" fill="url(#bg-radial)" mask="url(#fade-down)" />
-  </g>
   <ellipse id="hole" cx="105.4" cy="96.6" rx="44" ry="10.1" fill="#000" />
   <g clip-path="url(#above-rim)">
     <g id="rabbit-intro">

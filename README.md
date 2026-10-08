@@ -1,5 +1,8 @@
-<p align="center"><img src="./assets/hopper.svg" alt="Hopper, the WebHop rabbit, peeking out of its burrow" width="160"></p>
-<h1 align="center">WebHop</h1>
+<h1 align="center">
+  <img src="./assets/hopper.svg" alt="Hopper, the WebHop rabbit, peeking out of its burrow" width="160">
+  <br/>
+  WebHop
+</h1>
 
 WebHop publishes an ASP.NET Core app that runs behind NAT or a firewall through a public **gateway**, with no inbound ports. The app opens WebSocket tunnels out to the gateway. The gateway forwards public HTTP traffic through them with [YARP](https://github.com/dotnet/yarp), and on the app side the tunnels are served by Kestrel like ordinary connections.
 
