@@ -37,7 +37,8 @@ namespace WebHop.Gateway.Host
         {
             return Encoding.UTF8.GetString(ReadResource("gateway-error.html"))
                 .Replace("%FAVICON_PNG%", "data:image/png;base64," + Convert.ToBase64String(ReadResource("favicon.png")))
-                .Replace("%FAVICON%", "data:image/svg+xml;base64," + Convert.ToBase64String(ReadResource("favicon.svg")));
+                .Replace("%FAVICON%", "data:image/svg+xml;base64," + Convert.ToBase64String(ReadResource("favicon.svg")))
+                .Replace("%HOPPER%", Encoding.UTF8.GetString(ReadResource("hopper-stuck.svg")));
         }
 
         private static byte[] ReadResource(string suffix)

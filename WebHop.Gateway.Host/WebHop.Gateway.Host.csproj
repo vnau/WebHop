@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -15,9 +15,11 @@
     <None Remove="ErrorPage/gateway-error.html" />
     <None Remove="ErrorPage/favicon.svg" />
     <None Remove="ErrorPage/favicon.png" />
+    <None Remove="ErrorPage\hopper-stuck.svg" />
     <EmbeddedResource Include="ErrorPage/gateway-error.html" />
     <EmbeddedResource Include="ErrorPage/favicon.svg" />
     <EmbeddedResource Include="ErrorPage/favicon.png" />
+    <EmbeddedResource Include="ErrorPage\hopper-stuck.svg" />
   </ItemGroup>
 
   <ItemGroup>
