@@ -400,3 +400,4 @@ FodyWeavers.xsd
 # Local settings for docker compose (auth token)
 .env
 /WebHop.Gateway/Properties/ServiceDependencies
+/WebHop.Example/

@@ -21,7 +21,6 @@ Everything HTTP passes through: streaming request and response bodies of any siz
 | `WebHop.Origin` | Library that tunnels your app to a gateway |
 | `WebHop.Core` | Code shared by both |
 | `WebHop.CLI` | `webhop`, an ngrok-style command line tool that exposes any local server |
-| `WebHop.Example` | Sample app published through a gateway |
 | `WebHop.Tests` | Unit and end-to-end tests: `dotnet test WebHop.Tests` |
 
 ## Quick start
@@ -43,7 +42,7 @@ builder.WebHost.UseWebHop();
 Start the app with the **gateway's** URL and the same `WEBHOP_AUTHTOKEN` in its environment. With WebHop, `--urls` (or `applicationUrl` in `launchSettings.json`) is where to connect, not where to listen:
 
 ```sh
-dotnet run --project WebHop.Example --urls https://localhost:7188/
+dotnet run --project MyApp --urls https://localhost:7188/
 ```
 
 Then open https://localhost:7188/ to see the app through the gateway.
