@@ -1,4 +1,4 @@
-namespace WebHop.Server
+namespace WebHop.Origin
 {
     public enum WebHopConnectionState
     {
@@ -17,5 +17,5 @@ namespace WebHop.Server
 
     /// <summary>Snapshot of the tunnels to the gateway.</summary>
     /// <param name="LastError">Why the last attempt to open a tunnel failed, while that is still relevant.</param>
-    public sealed record WebHopServerStatus(WebHopConnectionState State, int OpenTunnels, int MaxTunnels, string? LastError);
+    public sealed record WebHopOriginStatus(WebHopConnectionState State, int OpenTunnels, int MaxTunnels, string? LastError);
 }

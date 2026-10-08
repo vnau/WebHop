@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WebHop.Core\WebHop.Core.csproj" />
-    <ProjectReference Include="..\WebHop.Server\WebHop.Server.csproj" />
+    <ProjectReference Include="..\WebHop.Origin\WebHop.Origin.csproj" />
     <ProjectReference Include="..\WebHop.Gateway\WebHop.Gateway.csproj" />
     <ProjectReference Include="..\WebHop.Gateway.Host\WebHop.Gateway.Host.csproj" />
     <ProjectReference Include="..\WebHop.CLI\WebHop.CLI.csproj" />

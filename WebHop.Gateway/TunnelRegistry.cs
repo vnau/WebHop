@@ -4,26 +4,26 @@ using WebHop.Core;
 namespace WebHop.Gateway
 {
     /// <summary>
-    /// Tracks connected WebHop servers and the idle tunnel streams each of them keeps open.
-    /// A server is registered while it has at least one tunnel stream connected.
+    /// Tracks connected WebHop origins and the idle tunnel streams each of them keeps open.
+    /// An origin is registered while it has at least one tunnel stream connected.
     /// </summary>
     public sealed class TunnelRegistry(ILogger<TunnelRegistry> logger)
     {
         private readonly object sync = new();
-        private readonly Dictionary<string, ServerTunnel> servers = [];
-        private string[] serverIds = [];
+        private readonly Dictionary<string, OriginTunnel> origins = [];
+        private string[] originIds = [];
         private int next;
 
-        public int ServerCount => Volatile.Read(ref serverIds).Length;
+        public int OriginCount => Volatile.Read(ref originIds).Length;
 
-        /// <summary>Server ids double as host names in YARP destination URLs.</summary>
-        public static bool IsValidServerId(string? id) =>
+        /// <summary>Origin ids double as host names in YARP destination URLs.</summary>
+        public static bool IsValidOriginId(string? id) =>
             id is { Length: > 0 and <= 63 } && id.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c));
 
-        /// <summary>Round-robin over connected servers; null when none are connected.</summary>
-        public string? PickServer()
+        /// <summary>Round-robin over connected origins; null when none are connected.</summary>
+        public string? PickOrigin()
         {
-            var ids = Volatile.Read(ref serverIds);
+            var ids = Volatile.Read(ref originIds);
             if (ids.Length == 0)
                 return null;
             return ids[(int)((uint)Interlocked.Increment(ref next) % (uint)ids.Length)];
@@ -32,31 +32,31 @@ namespace WebHop.Gateway
         /// <summary>
         /// Offers a freshly accepted tunnel stream to the pool and completes when the stream closes.
         /// </summary>
-        public async Task RunTunnelAsync(string serverId, TunnelStream stream, CancellationToken ct)
+        public async Task RunTunnelAsync(string originId, TunnelStream stream, CancellationToken ct)
         {
-            ServerTunnel tunnel;
+            OriginTunnel tunnel;
             lock (sync)
             {
-                if (!servers.TryGetValue(serverId, out tunnel!))
+                if (!origins.TryGetValue(originId, out tunnel!))
                 {
-                    servers[serverId] = tunnel = new ServerTunnel();
-                    serverIds = [.. servers.Keys];
-                    logger.LogInformation("Server {ServerId} connected ({Count} connected)", serverId, servers.Count);
+                    origins[originId] = tunnel = new OriginTunnel();
+                    originIds = [.. origins.Keys];
+                    logger.LogInformation("Origin {OriginId} connected ({Count} connected)", originId, origins.Count);
                 }
                 tunnel.Connections++;
-                logger.LogDebug("Tunnel stream of {ServerId} opened ({Count} open)", serverId, tunnel.Connections);
+                logger.LogDebug("Tunnel stream of {OriginId} opened ({Count} open)", originId, tunnel.Connections);
             }
 
             try
             {
                 var entry = new IdleStream(stream);
                 // Nothing arrives on an idle tunnel before a request is sent, so a completed
-                // read-ahead on a stream still in the pool means the server closed it
+                // read-ahead on a stream still in the pool means the origin closed it
                 _ = stream.StartReadAhead().ContinueWith(t =>
                 {
                     if (entry.TryMarkDead())
                     {
-                        logger.LogDebug("Idle tunnel stream of {ServerId} closed: {Reason}", serverId,
+                        logger.LogDebug("Idle tunnel stream of {OriginId} closed: {Reason}", originId,
                             t.IsCompletedSuccessfully ? t.Result.MessageType.ToString() : t.Exception?.GetBaseException().Message);
                         stream.Dispose();
                     }
@@ -70,27 +70,27 @@ namespace WebHop.Gateway
             {
                 lock (sync)
                 {
-                    logger.LogDebug("Tunnel stream of {ServerId} closed ({Count} open)", serverId, tunnel.Connections - 1);
+                    logger.LogDebug("Tunnel stream of {OriginId} closed ({Count} open)", originId, tunnel.Connections - 1);
                     if (--tunnel.Connections == 0)
                     {
-                        servers.Remove(serverId);
-                        serverIds = [.. servers.Keys];
+                        origins.Remove(originId);
+                        originIds = [.. origins.Keys];
                         tunnel.Idle.Writer.TryComplete();
-                        logger.LogInformation("Server {ServerId} disconnected ({Count} connected)", serverId, servers.Count);
+                        logger.LogInformation("Origin {OriginId} disconnected ({Count} connected)", originId, origins.Count);
                     }
                 }
             }
         }
 
-        /// <summary>Takes an idle tunnel stream of the server, waiting for one if all are in use.</summary>
-        public async ValueTask<Stream> TakeStreamAsync(string serverId, CancellationToken ct)
+        /// <summary>Takes an idle tunnel stream of the origin, waiting for one if all are in use.</summary>
+        public async ValueTask<Stream> TakeStreamAsync(string originId, CancellationToken ct)
         {
-            ServerTunnel? tunnel;
+            OriginTunnel? tunnel;
             lock (sync)
-                servers.TryGetValue(serverId, out tunnel);
+                origins.TryGetValue(originId, out tunnel);
 
             if (tunnel is null)
-                throw new IOException($"WebHop server {serverId} is not connected.");
+                throw new IOException($"WebHop origin {originId} is not connected.");
 
             try
             {
@@ -103,11 +103,11 @@ namespace WebHop.Gateway
             }
             catch (ChannelClosedException)
             {
-                throw new IOException($"WebHop server {serverId} disconnected.");
+                throw new IOException($"WebHop origin {originId} disconnected.");
             }
         }
 
-        private sealed class ServerTunnel
+        private sealed class OriginTunnel
         {
             public Channel<IdleStream> Idle { get; } = Channel.CreateUnbounded<IdleStream>();
             public int Connections { get; set; }

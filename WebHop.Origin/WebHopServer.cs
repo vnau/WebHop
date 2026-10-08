@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WebHop.Core;
 
-namespace WebHop.Server
+namespace WebHop.Origin
 {
     /// <summary>
     /// Serves the application through a WebHop gateway instead of a local port.
@@ -38,18 +38,18 @@ namespace WebHop.Server
 
         public IFeatureCollection Features { get; }
 
-        /// <summary>Identifies this server to the gateway (X-Webhop-Connection-Id).</summary>
-        public string ServerId => options.ServerId;
+        /// <summary>Identifies this origin to the gateway (X-Webhop-Origin-Id).</summary>
+        public string OriginId => options.OriginId;
 
         /// <summary>Current state of the tunnels to the gateway.</summary>
-        public WebHopServerStatus Status =>
-            listenerFactory?.Listener?.Status ?? new WebHopServerStatus(WebHopConnectionState.Connecting, 0, options.MaxConnections, null);
+        public WebHopOriginStatus Status =>
+            listenerFactory?.Listener?.Status ?? new WebHopOriginStatus(WebHopConnectionState.Connecting, 0, options.MaxConnections, null);
 
         public async Task StartAsync<TContext>(IHttpApplication<TContext> application, CancellationToken ct) where TContext : notnull
         {
             var address = Features.Get<IServerAddressesFeature>()?.Addresses.FirstOrDefault()
                 ?? throw new InvalidOperationException("No WebHop gateway URL configured. Pass it with --urls or applicationUrl.");
-            var tunnelUri = GetTunnelUri(address, options.ServerId);
+            var tunnelUri = GetTunnelUri(address, options.OriginId);
 
             // The gateway rejects every tunnel without one; fail now instead of retrying forever
             if (string.IsNullOrWhiteSpace(options.AuthToken))
@@ -94,7 +94,7 @@ namespace WebHop.Server
         }
 
         /// <summary>The configured gateway URL as the WebSocket URL tunnels connect to.</summary>
-        internal static Uri GetTunnelUri(string address, string serverId)
+        internal static Uri GetTunnelUri(string address, string originId)
         {
             var configuredUrl = new Uri(address);
             var hubUrl = configuredUrl.AbsolutePath == "/" ? new Uri(configuredUrl, Constants.DefaultWebHopEndpoint) : configuredUrl;
@@ -109,7 +109,7 @@ namespace WebHop.Server
                 },
             };
             var query = builder.Query.TrimStart('?');
-            builder.Query = (query.Length > 0 ? query + "&" : "") + $"{Constants.ServerIdParameter}={serverId}";
+            builder.Query = (query.Length > 0 ? query + "&" : "") + $"{Constants.OriginIdParameter}={originId}";
             return builder.Uri;
         }
     }

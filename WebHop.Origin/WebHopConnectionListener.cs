@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using WebHop.Core;
 
-namespace WebHop.Server
+namespace WebHop.Origin
 {
     /// <summary>Kestrel endpoint that is reached through a WebHop gateway.</summary>
     internal sealed class WebHopEndPoint(Uri tunnelUri) : EndPoint
@@ -59,7 +59,7 @@ namespace WebHop.Server
 
         public EndPoint EndPoint => endpoint;
 
-        public WebHopServerStatus Status
+        public WebHopOriginStatus Status
         {
             get
             {
@@ -73,7 +73,7 @@ namespace WebHop.Server
                         _ when connected => WebHopConnectionState.Offline,
                         _ => WebHopConnectionState.Connecting,
                     };
-                return new WebHopServerStatus(state, count, EffectiveMax, lastError);
+                return new WebHopOriginStatus(state, count, EffectiveMax, lastError);
             }
         }
 
@@ -143,7 +143,7 @@ namespace WebHop.Server
             if (!connected)
             {
                 connected = true;
-                logger.LogInformation("Connected to WebHop gateway {Gateway} as {ServerId}", gateway, options.ServerId);
+                logger.LogInformation("Connected to WebHop gateway {Gateway} as {OriginId}", gateway, options.OriginId);
             }
 
             if (count == options.MaxConnections)

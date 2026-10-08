@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text;
 using WebHop.Core;
-using WebHop.Server;
+using WebHop.Origin;
 using WebHop.Tests.Infrastructure;
 
 namespace WebHop.Tests.Integration
@@ -23,7 +23,7 @@ namespace WebHop.Tests.Integration
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("pong", await response.Content.ReadAsStringAsync());
-            Assert.Equal(app.Server.ServerId, response.Headers.GetValues(Headers.XWebhopConnectionId).Single());
+            Assert.Equal(app.Server.OriginId, response.Headers.GetValues(Headers.XWebhopOriginId).Single());
             Assert.Equal(WebHopConnectionState.Online, app.Server.Status.State);
         }
 
@@ -209,7 +209,7 @@ namespace WebHop.Tests.Integration
             await app.DisposeAsync();
 
             Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), $"took {stopwatch.Elapsed}");
-            await Eventually.TrueAsync(() => gateway.Registry.ServerCount == 0, "gateway drops the stopped app");
+            await Eventually.TrueAsync(() => gateway.Registry.OriginCount == 0, "gateway drops the stopped app");
         }
 
         [Fact]
@@ -234,7 +234,7 @@ namespace WebHop.Tests.Integration
             await using var app = await TunnelApp.StartAsync(gateway.Url, authToken: "wrong-token");
 
             await Eventually.TrueAsync(() => app.Server.Status.State == WebHopConnectionState.Unauthorized, "app reports unauthorized");
-            Assert.Equal(0, gateway.Registry.ServerCount);
+            Assert.Equal(0, gateway.Registry.OriginCount);
             using var response = await gateway.Client.GetAsync("/ping");
             Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         }
@@ -262,7 +262,7 @@ namespace WebHop.Tests.Integration
             await ws.ConnectAsync(uri, CancellationToken.None);
 
             Assert.Equal(Constants.WebHopSubprotocol, ws.SubProtocol);
-            await Eventually.TrueAsync(() => gateway.Registry.ServerCount == 1, "tunnel registered via subprotocol");
+            await Eventually.TrueAsync(() => gateway.Registry.OriginCount == 1, "tunnel registered via subprotocol");
             await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
         }
 
@@ -277,7 +277,7 @@ namespace WebHop.Tests.Integration
             var uri = new Uri(gateway.Url.Replace("http://", "ws://") + "/webhop?id=browser");
 
             await Assert.ThrowsAnyAsync<WebSocketException>(() => ws.ConnectAsync(uri, CancellationToken.None));
-            Assert.Equal(0, gateway.Registry.ServerCount);
+            Assert.Equal(0, gateway.Registry.OriginCount);
         }
 
         [Fact]

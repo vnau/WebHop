@@ -66,7 +66,7 @@ internal static class Help
               help       help about any command
 
             EXAMPLES:
-              webhop config add-server-addr https://my-gateway.azurewebsites.net/
+              webhop config add-gateway-url https://my-gateway.azurewebsites.net/
               webhop config add-authtoken <token>
               webhop http 8080
 
@@ -94,7 +94,7 @@ internal static class Help
 
             FLAGS:
               --url string           gateway URL, which is also the public URL
-                                     (default: WEBHOP_URL, then server_addr from the config file)
+                                     (default: WEBHOP_URL, then gateway_url from the config file)
               --authtoken string     the gateway's auth token (default: WEBHOP_AUTHTOKEN,
                                      then authtoken from the config file)
               --host-header string   Host header sent to the local server: `rewrite` for the
@@ -118,7 +118,7 @@ internal static class Help
 
             USAGE:
               webhop config add-authtoken <token>      save the gateway's auth token
-              webhop config add-server-addr <url>      save the gateway to connect to by default
+              webhop config add-gateway-url <url>      save the gateway to connect to by default
               webhop config check                      validate the file and show its settings
               webhop config edit                       open the file in $VISUAL, $EDITOR or notepad/vi
 

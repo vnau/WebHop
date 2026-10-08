@@ -1,6 +1,6 @@
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.Hosting.Server;
-using WebHop.Server;
+using WebHop.Origin;
 
 namespace WebHop.Tests.Infrastructure
 {

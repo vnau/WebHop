@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using WebHop.Core;
 using WebHop.Gateway;
-using WebHop.Server;
+using WebHop.Origin;
 using WebHop.Tests.Infrastructure;
 
 namespace WebHop.Tests.Gateway

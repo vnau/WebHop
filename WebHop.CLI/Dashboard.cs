@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.WebUtilities;
-using WebHop.Server;
+using WebHop.Origin;
 
 namespace WebHop.CLI
 {
@@ -16,7 +16,7 @@ namespace WebHop.CLI
         public async Task RunAsync(CancellationToken ct)
         {
             var lastVersion = -1;
-            WebHopServerStatus? lastStatus = null;
+            WebHopOriginStatus? lastStatus = null;
             var lastSize = (Width: 0, Height: 0);
 
             TrySetCursorVisible(false);
@@ -52,7 +52,7 @@ namespace WebHop.CLI
             }
         }
 
-        private List<Segment[]> Build(WebHopServerStatus status, int height)
+        private List<Segment[]> Build(WebHopOriginStatus status, int height)
         {
             List<Segment[]> lines =
             [
@@ -60,7 +60,7 @@ namespace WebHop.CLI
                 [],
                 Row("Session Status", StatusText(status)),
                 Row("Version", new Segment(AppVersion.Current)),
-                Row("Server Id", new Segment(info.Server.ServerId)),
+                Row("Origin Id", new Segment(info.Server.OriginId)),
                 Row("Tunnels", new Segment($"{status.OpenTunnels}/{status.MaxTunnels} open")),
                 Row("Forwarding", new Segment($"{info.PublicUrl} -> {info.Target.ToString().TrimEnd('/')}")),
             ];
@@ -125,7 +125,7 @@ namespace WebHop.CLI
         private static Segment[] Row(string label, params Segment[] value) =>
             [new(label.PadRight(LabelWidth)), .. value];
 
-        private static Segment StatusText(WebHopServerStatus status) => status.State switch
+        private static Segment StatusText(WebHopOriginStatus status) => status.State switch
         {
             WebHopConnectionState.Online => new("online", ConsoleColor.Green),
             WebHopConnectionState.Connecting => new("connecting", ConsoleColor.Yellow),

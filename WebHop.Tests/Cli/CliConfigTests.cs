@@ -11,12 +11,12 @@ namespace WebHop.Tests.Cli
         [Fact]
         public void Settings_survive_a_save_and_load()
         {
-            new CliConfig { AuthToken = "tok", ServerAddr = "https://gw/" }.Save(ConfigPath);
+            new CliConfig { AuthToken = "tok", GatewayUrl = "https://gw/" }.Save(ConfigPath);
 
             var loaded = CliConfig.Load(ConfigPath);
 
             Assert.Equal("tok", loaded.AuthToken);
-            Assert.Equal("https://gw/", loaded.ServerAddr);
+            Assert.Equal("https://gw/", loaded.GatewayUrl);
         }
 
         [Fact]
@@ -35,7 +35,7 @@ namespace WebHop.Tests.Cli
             var loaded = CliConfig.Load(ConfigPath);
 
             Assert.Null(loaded.AuthToken);
-            Assert.Null(loaded.ServerAddr);
+            Assert.Null(loaded.GatewayUrl);
         }
 
         [Fact]

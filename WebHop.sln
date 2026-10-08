@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35506.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebHop.Server", "WebHop.Server\WebHop.Server.csproj", "{42F6512D-2E3F-4E4D-AF6A-0C4B34DD59ED}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebHop.Origin", "WebHop.Origin\WebHop.Origin.csproj", "{42F6512D-2E3F-4E4D-AF6A-0C4B34DD59ED}"
 	ProjectSection(ProjectDependencies) = postProject
 		{539E4C5C-1D78-4279-A838-ADAD57EB6224} = {539E4C5C-1D78-4279-A838-ADAD57EB6224}
 	EndProjectSection

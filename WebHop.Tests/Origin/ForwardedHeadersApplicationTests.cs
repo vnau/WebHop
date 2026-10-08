@@ -2,9 +2,9 @@ using System.Net;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Http.Features;
 using WebHop.Core;
-using WebHop.Server;
+using WebHop.Origin;
 
-namespace WebHop.Tests.Server
+namespace WebHop.Tests.Origin
 {
     public class ForwardedHeadersApplicationTests
     {

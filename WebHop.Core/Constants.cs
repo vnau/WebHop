@@ -5,8 +5,8 @@ namespace WebHop.Core
         public const string DefaultWebHopEndpoint = "/webhop";
         public const string WebHopProtoVersion = "2.0";
 
-        /// <summary>Query string parameter a server uses to identify itself when opening a tunnel.</summary>
-        public const string ServerIdParameter = "id";
+        /// <summary>Query string parameter an origin uses to identify itself when opening a tunnel.</summary>
+        public const string OriginIdParameter = "id";
 
         /// <summary>
         /// WebSocket subprotocol the gateway selects when a tunnel authenticates through the handshake's

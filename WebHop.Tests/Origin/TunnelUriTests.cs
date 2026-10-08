@@ -1,6 +1,6 @@
-using WebHop.Server;
+using WebHop.Origin;
 
-namespace WebHop.Tests.Server
+namespace WebHop.Tests.Origin
 {
     public class TunnelUriTests
     {

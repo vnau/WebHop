@@ -6,7 +6,7 @@ namespace WebHop.Gateway
 {
     /// <summary>
     /// The forwarder's HTTP client and request config. Every outgoing connection is resolved to an
-    /// idle tunnel stream of the server named by the destination host, instead of dialing a socket.
+    /// idle tunnel stream of the origin named by the destination host, instead of dialing a socket.
     /// A singleton: it holds one pooled <see cref="HttpMessageInvoker"/> shared by all requests.
     /// </summary>
     internal sealed class GatewayTunnelClient(TunnelRegistry registry) : IDisposable

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Http.Features;
 using WebHop.Core;
 
-namespace WebHop.Server
+namespace WebHop.Origin
 {
     /// <summary>
     /// Restores what the application would see if it faced the client directly: scheme, remote address

@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WebHop.Server\WebHop.Server.csproj" />
+    <ProjectReference Include="..\WebHop.Origin\WebHop.Origin.csproj" />
   </ItemGroup>
 
   <ItemGroup>

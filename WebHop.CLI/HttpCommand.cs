@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 using WebHop.Core;
-using WebHop.Server;
+using WebHop.Origin;
 using Yarp.ReverseProxy.Forwarder;
 
 namespace WebHop.CLI
@@ -19,8 +19,8 @@ namespace WebHop.CLI
         public static async Task<int> RunAsync(HttpOptions options)
         {
             var config = CliConfig.Load(options.ConfigPath);
-            var gatewayValue = options.Url ?? Environment.GetEnvironmentVariable("WEBHOP_URL") ?? config.ServerAddr
-                ?? throw new CliException("No gateway. Pass --url=https://<your-gateway>/ or run `webhop config add-server-addr https://<your-gateway>/`.");
+            var gatewayValue = options.Url ?? Environment.GetEnvironmentVariable("WEBHOP_URL") ?? config.GatewayUrl
+                ?? throw new CliException("No gateway. Pass --url=https://<your-gateway>/ or run `webhop config add-gateway-url https://<your-gateway>/`.");
             var gateway = HttpOptions.ParseGateway(gatewayValue);
             var authToken = options.AuthToken ?? Environment.GetEnvironmentVariable(Constants.AuthTokenEnvironmentVariable) ?? config.AuthToken;
             if (string.IsNullOrWhiteSpace(authToken))
@@ -210,7 +210,7 @@ namespace WebHop.CLI
     {
         public ILogger CreateLogger(string categoryName) =>
             // WebHopServer's connection problems are shown from its Status instead
-            categoryName.StartsWith("WebHop.Server", StringComparison.Ordinal) ? NullLogger.Instance : new SessionLogger(session);
+            categoryName.StartsWith(typeof(WebHopServer).Namespace!, StringComparison.Ordinal) ? NullLogger.Instance : new SessionLogger(session);
 
         public void Dispose() { }
 

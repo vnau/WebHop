@@ -2,11 +2,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY WebHop.Core/WebHop.Core.csproj WebHop.Core/
-COPY WebHop.Server/WebHop.Server.csproj WebHop.Server/
+COPY WebHop.Origin/WebHop.Origin.csproj WebHop.Origin/
 COPY WebHop.Example/WebHop.Example.csproj WebHop.Example/
 RUN dotnet restore WebHop.Example/WebHop.Example.csproj
 COPY WebHop.Core/ WebHop.Core/
-COPY WebHop.Server/ WebHop.Server/
+COPY WebHop.Origin/ WebHop.Origin/
 COPY WebHop.Example/ WebHop.Example/
 RUN dotnet publish WebHop.Example/WebHop.Example.csproj -c Release -o /app --no-restore
 

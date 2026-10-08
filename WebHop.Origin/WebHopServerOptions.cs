@@ -1,6 +1,6 @@
 using WebHop.Core;
 
-namespace WebHop.Server
+namespace WebHop.Origin
 {
     public sealed class WebHopServerOptions
     {
@@ -12,8 +12,8 @@ namespace WebHop.Server
         /// </summary>
         public string? AuthToken { get; set; } = Environment.GetEnvironmentVariable(Constants.AuthTokenEnvironmentVariable);
 
-        /// <summary>Identifies this server to the gateway; lowercase letters and digits only.</summary>
-        public string ServerId { get; set; } = Guid.NewGuid().ToString("N");
+        /// <summary>Identifies this origin to the gateway; lowercase letters and digits only.</summary>
+        public string OriginId { get; set; } = Guid.NewGuid().ToString("N");
 
         /// <summary>
         /// Upper bound on the tunnel streams kept open to the gateway. Each carries one HTTP connection,

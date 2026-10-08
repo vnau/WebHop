@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using WebHop.Server;
+using WebHop.Origin;
 
 // Same namespace as UseKestrel, so builder.WebHost.UseWebHop() needs no extra using
 namespace Microsoft.AspNetCore.Hosting

@@ -19,8 +19,8 @@ namespace WebHop.CLI
             {
                 case ["add-authtoken", var token]:
                     return Update(path, c => c.AuthToken = token, "Auth token");
-                case ["add-server-addr", var url]:
-                    return Update(path, c => c.ServerAddr = HttpOptions.ParseGateway(url).ToString(), "Server address");
+                case ["add-gateway-url", var url]:
+                    return Update(path, c => c.GatewayUrl = HttpOptions.ParseGateway(url).ToString(), "Gateway URL");
                 case ["check"]:
                     return Check(path);
                 case ["edit"]:
@@ -50,11 +50,11 @@ namespace WebHop.CLI
             }
 
             var config = CliConfig.Load(path);
-            if (config.ServerAddr is { } serverAddr)
-                HttpOptions.ParseGateway(serverAddr);
+            if (config.GatewayUrl is { } gatewayUrl)
+                HttpOptions.ParseGateway(gatewayUrl);
 
             Console.WriteLine($"Valid configuration file at {path}");
-            Console.WriteLine($"  server_addr  {config.ServerAddr ?? "(not set)"}");
+            Console.WriteLine($"  gateway_url  {config.GatewayUrl ?? "(not set)"}");
             Console.WriteLine($"  authtoken    {Mask(config.AuthToken)}");
             return 0;
         }

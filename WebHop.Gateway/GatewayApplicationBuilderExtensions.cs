@@ -8,9 +8,9 @@ namespace Microsoft.AspNetCore.Builder
     public static class GatewayApplicationBuilderExtensions
     {
         /// <summary>
-        /// Routes traffic through the WebHop gateway. Servers open tunnels at
+        /// Routes traffic through the WebHop gateway. Origins open tunnels at
         /// <see cref="Constants.DefaultWebHopEndpoint"/>; every other request is forwarded to a
-        /// connected server round-robin. When no server is connected the request falls through to
+        /// connected origin round-robin. When no origin is connected the request falls through to
         /// the next middleware, so a host can serve its own content (or end the pipeline with a 503).
         /// Call <c>AddWebHopGateway()</c> first and <c>UseWebSockets()</c> before this.
         /// </summary>
@@ -42,22 +42,22 @@ namespace Microsoft.AspNetCore.Builder
                     return;
                 }
 
-                // Servers open tunnel streams here: one WebSocket per HTTP connection
+                // Origins open tunnel streams here: one WebSocket per HTTP connection
                 if (path.Equals(Constants.DefaultWebHopEndpoint, StringComparison.OrdinalIgnoreCase))
                 {
                     await AcceptTunnelAsync(context, registry, authorization, lifetime, logger, maxConnectionsPerOrigin);
                     return;
                 }
 
-                // Public traffic: forward to a connected server, or fall through when none is connected
-                var serverId = registry.PickServer();
-                if (serverId is null)
+                // Public traffic: forward to a connected origin, or fall through when none is connected
+                var originId = registry.PickOrigin();
+                if (originId is null)
                 {
                     await next(context);
                     return;
                 }
 
-                var error = await forwarder.SendAsync(context, $"http://{serverId}/", tunnelClient.Invoker, tunnelClient.Config, new WebHopTransformer(serverId));
+                var error = await forwarder.SendAsync(context, $"http://{originId}/", tunnelClient.Invoker, tunnelClient.Config, new WebHopTransformer(originId));
                 if (error != ForwarderError.None)
                 {
                     var exception = context.Features.Get<IForwarderErrorFeature>()?.Exception;
@@ -65,15 +65,15 @@ namespace Microsoft.AspNetCore.Builder
                     var level = error is ForwarderError.RequestCanceled or ForwarderError.RequestBodyCanceled
                         or ForwarderError.ResponseBodyCanceled or ForwarderError.UpgradeRequestCanceled or ForwarderError.UpgradeResponseCanceled
                         ? LogLevel.Debug : LogLevel.Warning;
-                    logger.Log(level, "{ServerId} {RequestId} forwarding failed: {Error} {Message}", serverId, context.TraceIdentifier, error, exception?.Message);
+                    logger.Log(level, "{OriginId} {RequestId} forwarding failed: {Error} {Message}", originId, context.TraceIdentifier, error, exception?.Message);
                 }
             });
         }
 
         private static async Task AcceptTunnelAsync(HttpContext context, TunnelRegistry registry, TunnelAuthorization authorization, IHostApplicationLifetime lifetime, ILogger logger, int maxConnectionsPerOrigin)
         {
-            string? serverId = context.Request.Query[Constants.ServerIdParameter];
-            if (!context.WebSockets.IsWebSocketRequest || !TunnelRegistry.IsValidServerId(serverId))
+            string? originId = context.Request.Query[Constants.OriginIdParameter];
+            if (!context.WebSockets.IsWebSocketRequest || !TunnelRegistry.IsValidOriginId(originId))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 return;
@@ -99,9 +99,9 @@ namespace Microsoft.AspNetCore.Builder
                 : null;
             var webSocket = await context.WebSockets.AcceptWebSocketAsync(subProtocol);
             // Close tunnels as soon as the gateway stops; otherwise shutdown waits for each tunnel
-            // request until the host's 30 s timeout, and servers reconnect that much later
+            // request until the host's 30 s timeout, and origins reconnect that much later
             using var closing = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted, lifetime.ApplicationStopping);
-            await registry.RunTunnelAsync(serverId!, new TunnelStream(webSocket), closing.Token);
+            await registry.RunTunnelAsync(originId!, new TunnelStream(webSocket), closing.Token);
         }
     }
 }

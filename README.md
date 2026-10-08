@@ -1,3 +1,5 @@
+<p align="center"><img src="webhop-animated.svg" alt="Hopper, the WebHop rabbit, peeking out of its burrow" width="160"></p>
+
 # WebHop
 
 WebHop publishes an ASP.NET Core app that runs behind NAT or a firewall through a public **gateway**, with no inbound ports. The app opens WebSocket tunnels out to the gateway. The gateway forwards public HTTP traffic through them with [YARP](https://github.com/dotnet/yarp), and on the app side the tunnels are served by Kestrel like ordinary connections.
@@ -14,7 +16,7 @@ Everything HTTP passes through: streaming request and response bodies of any siz
 | Project | What it is |
 |---|---|
 | `WebHop.Gateway` | The public gateway |
-| `WebHop.Server` | Library that tunnels your app to a gateway |
+| `WebHop.Origin` | Library that tunnels your app to a gateway |
 | `WebHop.Core` | Code shared by both |
 | `WebHop.CLI` | `webhop`, an ngrok-style command line tool that exposes any local server |
 | `WebHop.Example` | Sample app published through a gateway |
@@ -22,14 +24,14 @@ Everything HTTP passes through: streaming request and response bodies of any siz
 
 ## Quick start
 
-Pick an auth token (any long random string) and run a gateway with it. Servers need the same token to connect; see [Protecting the gateway](#protecting-the-gateway).
+Pick an auth token (any long random string) and run a gateway with it. Origins need the same token to connect; see [Protecting the gateway](#protecting-the-gateway).
 
 ```sh
 export WEBHOP_AUTHTOKEN=<token>      # PowerShell: $env:WEBHOP_AUTHTOKEN = "<token>"
 dotnet run --project WebHop.Gateway.Host --launch-profile https
 ```
 
-Reference `WebHop.Server` from your app and serve it through WebHop instead of Kestrel:
+Reference `WebHop.Origin` from your app and serve it through WebHop instead of Kestrel:
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -55,7 +57,7 @@ builder.WebHost.UseWebHop("https://gateway.example.com/", options => options.Max
 `webhop` exposes any local HTTP server through your gateway, much like `ngrok http`. The local server needs no WebHop code, and it doesn't have to be .NET.
 
 ```sh
-webhop config add-server-addr https://my-gateway.azurewebsites.net/
+webhop config add-gateway-url https://my-gateway.azurewebsites.net/
 webhop config add-authtoken <token>
 webhop http 5000
 ```
@@ -65,7 +67,7 @@ WebHop                                                (Ctrl+C to quit)
 
 Session Status                online
 Version                       1.0.0
-Server Id                     5c11642ef14844fb98e6cfcb5ac6ea99
+Origin Id                     5c11642ef14844fb98e6cfcb5ac6ea99
 Tunnels                       16/16 open
 Forwarding                    https://my-gateway.azurewebsites.net -> http://localhost:5000
 
@@ -83,14 +85,14 @@ The commands and flags follow ngrok's:
 | Command | What it does |
 |---|---|
 | `webhop http 5000` | Forward to `http://localhost:5000`; also accepts `localhost:5000` or a full URL such as `https://localhost:7001` |
-| `webhop config add-server-addr <url>` | Save the gateway to connect to |
+| `webhop config add-gateway-url <url>` | Save the gateway to connect to |
 | `webhop config add-authtoken <token>` | Save the gateway's auth token |
 | `webhop config check` / `config edit` | Show or edit the saved settings |
 | `webhop help [command]`, `webhop <command> --help` | Usage and all flags |
 
 | Flag for `webhop http` | Meaning |
 |---|---|
-| `--url` | Gateway URL, which is also the public URL. Default: `WEBHOP_URL`, then the saved server address |
+| `--url` | Gateway URL, which is also the public URL. Default: `WEBHOP_URL`, then the saved gateway address |
 | `--authtoken` | The gateway's auth token. Default: `WEBHOP_AUTHTOKEN`, then the saved auth token |
 | `--host-header=rewrite` | Send `Host: localhost:<port>`, for dev servers that reject other hosts such as Vite and the webpack dev server |
 | `--log=stdout\|stderr\|<file>` | `stdout`/`stderr` print log lines instead of the live screen (also used when output is redirected); a file path keeps the screen and writes the log to the file |
@@ -111,7 +113,7 @@ dotnet tool install -g WebHop.CLI --add-source ./nupkg
 
 ## Protecting the gateway
 
-Only servers that present the gateway's auth token can open tunnels. Set the same auth token on both sides. The environment variable `WEBHOP_AUTHTOKEN` works everywhere:
+Only origins that present the gateway's auth token can open tunnels. Set the same auth token on both sides. The environment variable `WEBHOP_AUTHTOKEN` works everywhere:
 
 | Where | Setting |
 |---|---|
@@ -123,7 +125,7 @@ If both are set, the `WebHop:AuthToken` setting wins over `WEBHOP_AUTHTOKEN`.
 
 There is no open mode. A gateway without an auth token still starts and serves `/webhop/status`, but it rejects every tunnel and logs an error until one is set. An app or `webhop` without an auth token refuses to start.
 
-The auth token is sent as a bearer token each time a tunnel opens, so use an `https://` gateway URL outside local development. It only controls who can register as a server; public visitors don't need it.
+The auth token is sent as a bearer token each time a tunnel opens, so use an `https://` gateway URL outside local development. It only controls who can register as an origin; public visitors don't need it.
 
 ## Docker
 
@@ -148,7 +150,7 @@ If the gateway runs behind a TLS-terminating reverse proxy (nginx, Traefik, Cadd
 - Point your app at `https://<your-app>.azurewebsites.net/`.
 - Mind the plan's WebSocket limit per instance: Free allows 5, Shared 35, Basic 350, Standard and up have no fixed limit. Every tunnel is one WebSocket, and so is every WebSocket your visitors open. On the capped tiers (Free, Shared) the gateway advertises a per-origin tunnel limit on the handshake and your app caps itself to it automatically, leaving room for visitors — so no manual `MaxConnections` tuning is needed.
 
-## Server options
+## Origin options
 
 `UseWebHop` reads these from the `WebHop` configuration section (appsettings.json, environment variables such as `WebHop__MaxConnections`, and so on). Values set in the `UseWebHop` callback take precedence.
 
@@ -164,7 +166,7 @@ If the gateway runs behind a TLS-terminating reverse proxy (nginx, Traefik, Cadd
 |---|---|---|
 | `AuthToken` | `WEBHOP_AUTHTOKEN` env var | The gateway's auth token (keep it out of appsettings.json in source control) |
 | `MaxConnections` | 10 | Tunnels kept open; caps concurrent requests and WebSockets (the gateway may advertise a lower per-origin limit, and the smaller wins) |
-| `ServerId` | random | How the gateway identifies this app |
+| `OriginId` | random | How the gateway identifies this app |
 | `MaxReconnectDelay` | 30 s | Upper bound of the reconnect backoff |
 | `KeepAliveInterval` | 15 s | WebSocket ping interval |
 
@@ -178,7 +180,7 @@ The app reconnects on its own when the gateway restarts. While no app is connect
 | `/webhop/status` | Health check |
 | anything else | Forwarded to a connected app; with several apps connected, they take turns |
 
-Requests forwarded to the app carry `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host`, and `WebHopServer` applies these automatically. Requests and responses also carry `X-Webhop-Connection-Id` (which app served it) and `X-Webhop-Request-Id`.
+Requests forwarded to the app carry `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host`, and `WebHopServer` applies these automatically. Requests and responses also carry `X-Webhop-Origin-Id` (which app served it) and `X-Webhop-Request-Id`.
 
 ## Limitations
 

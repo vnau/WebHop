@@ -1,6 +1,6 @@
 using System.Net;
 using WebHop.Core;
-using WebHop.Server;
+using WebHop.Origin;
 using WebHop.Tests.Infrastructure;
 
 namespace WebHop.Tests.Integration

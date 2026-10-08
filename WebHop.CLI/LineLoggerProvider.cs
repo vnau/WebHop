@@ -51,7 +51,7 @@ namespace WebHop.CLI
         {
             var now = DateTimeOffset.Now;
             var line = json
-                ? JsonSerializer.Serialize(new { t = now.ToString("O"), lvl = LevelName(level), obj = category, msg = message, err = exception?.Message })
+                ? JsonSerializer.Serialize(new LogLine(now.ToString("O"), LevelName(level), category, message, exception?.Message), LogLineJsonContext.Default.LogLine)
                 : $"{now:yyyy-MM-dd HH:mm:ss.fff} {LevelName(level)} {category}: {message}" + (exception is null ? "" : $" ({exception.Message})");
 
             lock (sync)

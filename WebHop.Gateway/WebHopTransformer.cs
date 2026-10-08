@@ -6,9 +6,9 @@ namespace WebHop.Gateway
 {
     /// <summary>
     /// Preserves the original Host and adds the forwarding and WebHop tracking headers.
-    /// X-Forwarded-* are always overwritten, so servers can trust them.
+    /// X-Forwarded-* are always overwritten, so origins can trust them.
     /// </summary>
-    public sealed class WebHopTransformer(string serverId) : HttpTransformer
+    public sealed class WebHopTransformer(string originId) : HttpTransformer
     {
         public override async ValueTask TransformRequestAsync(
             HttpContext context, HttpRequestMessage proxyRequest, string destinationPrefix, CancellationToken ct)
@@ -24,7 +24,7 @@ namespace WebHop.Gateway
             SetHeader(proxyRequest, Headers.XForwardedFor, remoteIp is null ? null : new IPEndPoint(remoteIp, context.Connection.RemotePort).ToString());
             SetHeader(proxyRequest, Headers.XForwardedProto, context.Request.Scheme);
             SetHeader(proxyRequest, Headers.XForwardedHost, context.Request.Host.Value);
-            SetHeader(proxyRequest, Headers.XWebhopConnectionId, serverId);
+            SetHeader(proxyRequest, Headers.XWebhopOriginId, originId);
             SetHeader(proxyRequest, Headers.XWebhopRequestId, context.TraceIdentifier);
         }
 
@@ -32,7 +32,7 @@ namespace WebHop.Gateway
             HttpContext context, HttpResponseMessage? proxyResponse, CancellationToken ct)
         {
             var result = await base.TransformResponseAsync(context, proxyResponse, ct);
-            context.Response.Headers[Headers.XWebhopConnectionId] = serverId;
+            context.Response.Headers[Headers.XWebhopOriginId] = originId;
             context.Response.Headers[Headers.XWebhopRequestId] = context.TraceIdentifier;
             return result;
         }
