@@ -1,0 +1,13 @@
+coverage:
+  status:
+    # Report coverage on PRs without failing them over small drops.
+    project:
+      default:
+        threshold: 2%
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "diff, files"
+  require_changes: true

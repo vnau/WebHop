@@ -1,10 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net9.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <OutputType>library</OutputType>
     <Nullable>enable</Nullable>
+
+    <PackageId>WebHop.Origin</PackageId>
+    <Description>Serve an ASP.NET Core app through a WebHop gateway from behind NAT or a firewall, with no inbound ports: the app opens WebSocket tunnels to the gateway and Kestrel serves them. Adds builder.WebHost.UseWebHop().</Description>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,32 @@
+<Project>
+
+  <!-- Shared metadata for every project in the repo, so the NuGet packages version and attribute
+       together. Each packable project keeps its own PackageId/Description in its csproj; the
+       packages are WebHop.Core, WebHop.Origin (UseWebHop), WebHop.Gateway (middleware) and webhop
+       (the CLI, a dotnet tool). Version is the local default; the release workflow overrides it
+       from the git tag (v2.1.0 -> 2.1.0). -->
+  <PropertyGroup>
+    <Version>2.0.0</Version>
+    <Authors>elebree</Authors>
+    <Product>WebHop</Product>
+    <Copyright>Copyright (c) 2026 elebree</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/elebree/WebHop</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/elebree/WebHop</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- Source Link (built into the SDK) plus a .snupkg symbol package, so consumers can step into
+         the package sources. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- Reproducible builds on CI only: it maps source paths to /_/, which would break local
+       debugging and coverage paths. -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>

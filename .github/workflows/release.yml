@@ -1,0 +1,149 @@
+name: Release
+
+# Publishes WebHop.Core, WebHop.Origin, WebHop.Gateway and the webhop tool to nuget.org and GitHub
+# Packages, and attaches the packages and self-contained webhop binaries to the GitHub release.
+#
+# Either way of releasing works:
+# - push a tag (git tag v2.1.0 && git push origin v2.1.0): the release is created with generated notes;
+# - create the release by hand on GitHub: the artifacts are attached to it.
+# Creating a release with a new tag fires both events. The runs for one tag are serialized and every
+# step is idempotent (--skip-duplicate, upload --clobber), so the second run only re-uploads.
+on:
+  push:
+    tags: ['v*']
+  release:
+    types: [published]
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: 9.0.x
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - run: dotnet test WebHop.Tests -c Release
+
+      - run: dotnet pack WebHop.sln -c Release -p:Version=${GITHUB_REF_NAME#v} -o packages
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: packages
+
+  # Native AOT webhop that runs without .NET installed (see BUILD.md). AOT can't build for another
+  # OS, so every RID builds on its own OS; linux-arm64 uses the native arm runner instead of a
+  # cross toolchain. Windows cross-compiles to arm64 with the VS arm64 tools on the runner.
+  binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: win-x64,     os: windows-latest }
+          - { rid: win-arm64,   os: windows-latest }
+          - { rid: linux-x64,   os: ubuntu-latest }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm }
+          - { rid: osx-arm64,   os: macos-latest }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish
+        run: >
+          dotnet publish WebHop.CLI -c Release -f net9.0 -r ${{ matrix.rid }}
+          -p:PublishAot=true -p:Version=${GITHUB_REF_NAME#v} -p:DebugType=none -o publish
+
+      # Only the executable: the publish folder also gets aspnetcorev2_inprocess.dll (the IIS
+      # module from the shared framework), which a console tool never loads.
+      - name: Archive
+        run: |
+          mkdir dist
+          name="webhop-${GITHUB_REF_NAME}-${{ matrix.rid }}"
+          if [[ "${{ matrix.rid }}" == win-* ]]; then
+            7z a "dist/$name.zip" ./publish/webhop.exe
+          else
+            tar -czf "dist/$name.tar.gz" -C publish webhop
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.rid }}
+          path: dist
+
+  publish:
+    needs: [pack, binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the release / upload its assets
+      packages: write   # push to GitHub Packages with GITHUB_TOKEN
+      id-token: write   # nuget.org trusted publishing (OIDC)
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      # GitHub Packages doesn't accept .snupkg symbol packages.
+      - name: Push to GitHub Packages
+        run: >
+          dotnet nuget push "artifacts/*.nupkg" --no-symbols --skip-duplicate
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          --api-key "${{ secrets.GITHUB_TOKEN }}"
+
+      # Exchanges the workflow's OIDC token for a short-lived nuget.org API key. Needs a trusted
+      # publishing policy on nuget.org for this repository and release.yml.
+      - uses: NuGet/login@v1
+        id: nuget
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # The matching .snupkg files are pushed alongside automatically.
+      - name: Push to nuget.org
+        run: >
+          dotnet nuget push "artifacts/*.nupkg" --skip-duplicate
+          --source https://api.nuget.org/v3/index.json
+          --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}"
+
+      # Reuses the release if it exists (made by hand, possibly still a draft), otherwise creates it.
+      # Versions with a suffix (v2.1.0-preview.1) become prereleases.
+      - name: Create release if missing
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG exists, attaching to it"
+          else
+            prerelease=""
+            [[ "$TAG" == *-* ]] && prerelease="--prerelease"
+            gh release create "$TAG" --verify-tag --generate-notes $prerelease
+          fi
+
+      - name: Attach artifacts
+        run: >
+          gh release upload "$TAG" --clobber
+          artifacts/*.nupkg artifacts/*.snupkg artifacts/*.zip artifacts/*.tar.gz
