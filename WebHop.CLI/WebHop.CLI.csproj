@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net9.0</TargetFrameworks>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>webhop</AssemblyName>
@@ -11,6 +11,8 @@
     <!-- dotnet pack makes it installable with: dotnet tool install -g webhop -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>webhop</ToolCommandName>
+    <!-- Also run on runtimes newer than the newest target (e.g. .NET 11) -->
+    <RollForward>Major</RollForward>
     <PackageId>webhop</PackageId>
   </PropertyGroup>
 

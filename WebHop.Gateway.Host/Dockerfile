@@ -1,6 +1,9 @@
 # Build from the repository root: docker build -f WebHop.Gateway.Host/Dockerfile .
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+# The .NET 10 SDK: the libraries also target net10.0, which the .NET 9 SDK can't restore. The host
+# itself targets net9.0, hence the 9.0 runtime image below.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY Directory.Build.props ./
 COPY WebHop.Core/WebHop.Core.csproj WebHop.Core/
 COPY WebHop.Gateway/WebHop.Gateway.csproj WebHop.Gateway/
 COPY WebHop.Gateway.Host/WebHop.Gateway.Host.csproj WebHop.Gateway.Host/
