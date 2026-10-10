@@ -4,6 +4,17 @@
   WebHop
 </h1>
 
+<p align="center">
+  <a href="https://github.com/elebree/WebHop/actions/workflows/ci.yml"><img src="https://github.com/elebree/WebHop/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://codecov.io/gh/elebree/WebHop"><img src="https://codecov.io/gh/elebree/WebHop/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://www.nuget.org/packages/WebHop.Origin"><img src="https://img.shields.io/nuget/v/WebHop.Origin?label=WebHop.Origin" alt="WebHop.Origin on NuGet"></a>
+  <a href="https://www.nuget.org/packages/WebHop.Gateway"><img src="https://img.shields.io/nuget/v/WebHop.Gateway?label=WebHop.Gateway" alt="WebHop.Gateway on NuGet"></a>
+  <a href="https://www.nuget.org/packages/webhop"><img src="https://img.shields.io/nuget/v/webhop?label=webhop%20tool" alt="webhop dotnet tool on NuGet"></a>
+  <a href="https://github.com/elebree/WebHop/releases/latest"><img src="https://img.shields.io/github/v/release/elebree/WebHop?label=binaries" alt="Latest release binaries"></a>
+  <img src="https://img.shields.io/badge/.NET-9.0-512BD4" alt=".NET 9.0">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/elebree/WebHop" alt="MIT license"></a>
+</p>
+
 WebHop publishes an ASP.NET Core app that runs behind NAT or a firewall through a public **gateway**, with no inbound ports. The app opens WebSocket tunnels out to the gateway. The gateway forwards public HTTP traffic through them with [YARP](https://github.com/dotnet/yarp), and on the app side the tunnels are served by Kestrel like ordinary connections.
 
 ```
